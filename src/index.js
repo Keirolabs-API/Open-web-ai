@@ -231,3 +231,5 @@ export { ai } from "./ai.js";
 export { listModels } from "./models.js";
 export { SSEParser } from "./sse.js";
 export { configure, config as provider } from "./provider.js";
+export { embed } from "./embed.js";
+export { retrievers, rerankers, rag } from "./retrieval.js";

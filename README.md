@@ -77,6 +77,7 @@ a tool-using agent, and JSON mode).
 
 - **OAuth PKCE** sign-in — no client secret, no backend, browser-direct (CORS-verified).
 - **Chat, streaming, structured output (JSON Schema), tool use (agent loop), vision.**
+- **RAG framework** — pluggable retrievers (your server's search, client-side vector, hybrid, static, fn) + rerankers + `ai.rag` that bridges retrieval (cheap, your server) to generation (the user's AI). Embeddings via `ai.embed`.
 - **Any provider** — OpenRouter (OAuth), any OpenAI-compatible endpoint, local Ollama,
   or point at your own. Rug-pull proof.
 - **Zero-infra failover** — set `ai.fallbacks`; if the primary model is down, the next serves.

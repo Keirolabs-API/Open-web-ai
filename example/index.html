@@ -59,6 +59,7 @@
         <button class="act" data-mode="stream" data-action="shorter">↓ Shorter</button>
         <button class="act tools" data-mode="tools">🔧 Tools: plan a trip</button>
         <button class="act" data-mode="json">🧬 JSON: extract facts</button>
+        <button class="act" data-mode="rag">📚 RAG: ask the knowledge base</button>
       </div>
 
       <div class="out" id="output">Your result streams in here.</div>
@@ -156,6 +157,32 @@
     finally { disable(false); }
   }
 
+  // a tiny in-page knowledge base for the RAG demo.
+  // In real use this is YOUR server's /search endpoint via retrievers.http(...)
+  const KB = [
+    { id: "refund", text: "Refunds are issued within 30 days of purchase if the item is unused. Email billing@example.com with the order number." },
+    { id: "hours", text: "Support hours are 9am–6pm UTC, Monday to Friday. Tickets outside those hours are answered the next business day." },
+    { id: "shipping", text: "Standard shipping takes 3–5 business days in the US. Express ships next day if ordered before 2pm." },
+    { id: "api", text: "The public API rate limit is 60 requests per minute per key. Burst up to 100 is allowed for 10 seconds." },
+    { id: "reset", text: "To reset a password, go to /reset and enter the account email. The link expires in 15 minutes." },
+  ];
+
+  async function runRag() {
+    output.textContent = "📚 searching knowledge base…\n";
+    const t0 = Date.now();
+    try {
+      // retrievers.static stands in for a company server-side search.
+      // swap to retrievers.http({ url: "/api/search", map: r => r.chunks }) in production.
+      const retrieve = ai.retrievers.static(KB.map(c => ({ text: c.text, source: c.id })));
+      const question = $("#input").value.trim() || "How do I get a refund?";
+      const ans = await ai.rag(question, { retrieve, k: 3 });
+      output.textContent = ans;
+      lastcall.textContent = `rag · ${ai.model} · ${Date.now()-t0}ms · +spend $${ai.spend.toFixed(6)}`;
+      refreshMeter();
+    } catch (e) { output.textContent = "error: " + e.message; }
+    finally { disable(false); }
+  }
+
   document.querySelectorAll("button.act").forEach((b) => {
     b.addEventListener("click", async () => {
       if (!ai.isSignedIn) { output.textContent = "Sign in first →"; return; }
@@ -165,6 +192,7 @@
       if (mode === "stream") await runStream(b.dataset.action);
       else if (mode === "tools") await runTools();
       else if (mode === "json") await runJson();
+      else if (mode === "rag") await runRag();
     });
   });
 </script>

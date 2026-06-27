@@ -150,6 +150,81 @@ await ai.ask("what's in this image?", { images: ["https://…/cat.png"] });
 `response_format`, `reasoning`, `plugins`, `route`, `provider`, `top_p`,
 `max_tokens`, `seed`, `stop`, … all work with no SDK change.
 
+## 4. RAG (retrieval framework)
+
+The retrieval framework is pluggable: pick a **Retriever** (where chunks come
+from), optionally a **Reranker** (which to keep), and `ai.rag` bridges
+retrieval → generation on the user's AI.
+
+```js
+import { ai } from "loginwith-openrouter";
+```
+
+**Your server does the search** (large corpus) — point at any endpoint:
+
+```js
+const retrieve = ai.retrievers.http({
+  url: "/api/search",                 // your server: embed query + vector search + return chunks
+  map: (r) => r.chunks,                // → [{ text, source?, score? }]
+});
+const ans = await ai.rag("how do refunds work?", { retrieve, k: 4 });
+```
+
+**Fully client-side** (small/working set) — the browser embeds + searches:
+
+```js
+const retrieve = await ai.retrievers.vector({
+  embed: (t) => ai.embed(t),           // on the user's key (or a local model)
+  docs: [{ id: "doc1", text: "…" }, …],
+});
+const ans = await ai.rag(query, { retrieve, k: 4 });
+```
+
+**Combine sources** (vector + keyword + your server) and re-rank:
+
+```js
+const retrieve = ai.retrievers.hybrid([httpRetriever, vectorRetriever]);
+const rerank = ai.rerankers.llm({ generate: (p) => ai.ask(p) });  // user's AI judges
+const ans = await ai.rag(query, { retrieve, rerank, k: 4 });
+```
+
+### Retriever types
+
+| type | use |
+|---|---|
+| `retrievers.http({url, map})` | your server-side search endpoint |
+| `retrievers.vector({embed, docs})` | client-side vector search (async build) |
+| `retrievers.hybrid([...])` | merge + dedup multiple sources |
+| `retrievers.static(chunks)` | fixed set (tests / tiny corpora) |
+| `retrievers.fn(f)` | a plain function `(query, opts) => chunks` |
+
+A Retriever is anything with `async retrieve(query, opts) => Chunk[]`, so you can
+write your own.
+
+### Rerankers
+
+| type | use |
+|---|---|
+| `rerankers.identity()` | no-op (default) |
+| `rerankers.score(scorer)` | score each chunk `(query, chunk) => 0..1`, re-sort |
+| `rerankers.llm({generate, keep})` | ask the user's AI which chunks are relevant |
+
+### Embeddings
+
+```js
+ai.embed("text")             // → number[]
+ai.embed(["a", "b"])         // → number[][]
+ai.embedModel = "openai/text-embedding-3-small";  // configurable
+```
+
+Runs on the user's key at the provider's `/embeddings` endpoint.
+
+### The split, restated
+
+Retrieval is cheap and can live on your server (you own the data) — `retrievers.http`.
+Generation is expensive and stays on the user's AI — `ai.rag` calls `ai.ask`. The
+chunks are the only thing that crosses between them. See [Vision](vision.md).
+
 ## 4. Running the example
 
 ```bash

@@ -13,9 +13,12 @@ import * as core from "./index.js";
 import * as budget from "./budget.js";
 import { listModels } from "./models.js";
 import { configure as configureProvider, config as provider } from "./provider.js";
+import { embed as embedCall } from "./embed.js";
+import { retrievers, rerankers, rag as ragBridge } from "./retrieval.js";
 
 const MODEL_KEY = "loginwith_openrouter_model";
 const FALLBACKS_KEY = "loginwith_openrouter_fallbacks";
+const EMBED_KEY = "loginwith_openrouter_embed_model";
 const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const set = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const del = (k) => { try { localStorage.removeItem(k); } catch {} };
@@ -165,5 +168,33 @@ export const ai = {
       }
     }
     return { content: steps[steps.length - 1]?.content ?? "", steps };
+  },
+
+  // --- embeddings + RAG framework ---
+  get embedModel() { return get(EMBED_KEY) || "openai/text-embedding-3-small"; },
+  set embedModel(m) { set(EMBED_KEY, m); },
+
+  /** Embed text (or texts) on the user's key. Returns vector(s). */
+  embed(input, opts = {}) { return embedCall(input, { model: opts.model || this.embedModel }); },
+
+  // pluggable retrieval framework — see src/retrieval.js
+  retrievers,
+  rerankers,
+
+  /**
+   * RAG: retrieve relevant chunks → (optional rerank) → generate grounded in them.
+   * `retrieve` is a Retriever object or a function (query, opts) => Chunk[].
+   * `generate` defaults to ai.ask; pass your own to test or customize.
+   * @returns {Promise<string>}
+   */
+  rag(query, opts = {}) {
+    return ragBridge(query, {
+      retrieve: opts.retrieve,
+      rerank: opts.rerank,
+      k: opts.k ?? 4,
+      system: opts.system,
+      buildContext: opts.buildContext,
+      generate: opts.generate || ((p, o) => this.ask(p, { ...o, model: o.model || this.model })),
+    });
   },
 };

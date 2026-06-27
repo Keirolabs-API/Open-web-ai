@@ -30,8 +30,32 @@ import { ai } from "loginwith-openrouter";
 | `stream(prompt, opts?)` | `AsyncGenerator<StreamEvent>` | Live deltas. |
 | `json(prompt, schema, opts?)` | `(prompt, {name,schema}, opts?) => Promise<any>` | Structured output via JSON Schema; returns parsed object. |
 | `agent(prompt, opts?)` | `(prompt, {tools,maxSteps,…}) => Promise<{content,steps}>` | Tool-use loop. |
+| `embed(input, opts?)` | `(text\|text[], {model?}) => Promise<number[]\|number[][]>` | Embeddings on the user's key. |
+| `embedModel` | `string` (get/set) | Default embedding model id. |
+| `rag(query, opts?)` | `(query, {retrieve, rerank?, k?, system?, generate?}) => Promise<string>` | Retrieve → rerank → generate. `retrieve` is a Retriever or function; `generate` defaults to `ai.ask`. |
+| `retrievers` | object | Built-in retriever constructors: `http`, `vector`, `hybrid`, `static`, `fn`. |
+| `rerankers` | object | Built-in rerankers: `identity`, `score`, `llm`. |
 
 `opts` for the call methods is a `ChatOptions` — see [Types](#types) below.
+
+## Retrieval framework (low-level)
+
+```js
+import { retrievers, rerankers, rag, embed } from "loginwith-openrouter";
+```
+
+- `retrievers.http({url, method?, queryField?, headers?, body?, map})` → Retriever
+- `retrievers.vector({embed, docs, model?})` → `Promise<Retriever>` (embeds docs on build)
+- `retrievers.hybrid(parts, {dedup?})` → Retriever (merges + dedups by text, best score)
+- `retrievers.static(chunks)` / `retrievers.fn(f)` → Retriever
+- `rerankers.identity()` / `rerankers.score(scorer)` / `rerankers.llm({generate, prompt?, keep?})`
+- `rag(query, {retrieve, rerank?, generate, k?, system?, buildContext?})` → `Promise<string>`
+
+A **Retriever** is any `{ async retrieve(query, opts) => Chunk[] }`. A **Chunk** is
+`{ text, source?, score?, meta? }`. A **Reranker** is `{ async rerank(query, chunks) => Chunk[] }`.
+
+`rag` is pure: pass your own `generate` to test without the network. `ai.rag`
+binds `generate` to `ai.ask` for you.
 
 ## Low-level (core) exports
 
