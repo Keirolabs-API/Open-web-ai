@@ -19,14 +19,27 @@ stereo — the site supplies the music, your account decides how it sounds, and
 the site never holds your headphones. One AI account, every app, the user in
 control. Full version for technical and non-technical readers: [Vision](docs/vision.md).
 
-## The 30-second pitch
+## Why
 
-- **For the platform:** zero AI bill, zero AI infra, zero AI downtime of your own,
-  zero data liability — your server never sees the AI and never sees the data go to it.
-- **For the user:** one OAuth click, a model picker, a spending cap, and their own
-  free-tier quota. They revoke anytime on openrouter.ai.
-- **For trust:** zero runtime deps, one default wire (`openrouter.ai`), SRI-pinnable,
-  one file away from auditable.
+**For users (the people who log in):**
+
+- Use the AI you already have — your own account, your own model choice. You're
+  not paying some random site for a new subscription.
+- Your key and your data stay in your browser. The site never receives your key
+  and never sends your data to an AI it controls.
+- Set a spending cap and revoke access anytime on openrouter.ai. You're in charge.
+- Free models mean you can try it at zero cost.
+
+**For companies (the sites that integrate it):**
+
+- Add AI features with no AI bill — users bring their own credits, so you don't
+  pay per token.
+- No AI infrastructure to build, run, or babysit — no model hosting, no rate
+  limits, no failover to manage.
+- Less AI data liability — your servers never process user data with an AI (it
+  runs in the user's browser on their key), so there's less to worry about.
+- No keys to protect — you never hold user API keys, so there's nothing to leak.
+- Ship in minutes — one tag for the UI, one `await ai.ask()` for the action.
 
 ## Quickstart
 
@@ -81,15 +94,6 @@ a tool-using agent, and JSON mode).
 | [API reference](docs/api.md) | every export, the `ai` surface, types |
 | [Providers](docs/providers.md) | OpenRouter, OpenAI-compatible, Ollama, fallbacks, SRI |
 | [Security & trust](docs/security.md) | the trust thesis, XSS, the cap reality, what's legit vs banned |
-
-## What this is *not*
-
-This is **not** "log in with a consumer Claude/ChatGPT account and use that
-subscription." Anthropic bans proxying consumer credentials through third-party
-apps (enforced at their edge since Jan 2026); OpenAI's consumer login is
-identity-only. Both get you revoked. This project uses **OpenRouter's
-first-class browser OAuth** (and BYO API keys for other providers) — the legit,
-ToS-clean path. See [Security & trust](docs/security.md).
 
 ## Status
 
