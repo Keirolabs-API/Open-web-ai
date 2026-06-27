@@ -1,0 +1,40 @@
+{
+  "name": "loginwith-openrouter",
+  "version": "0.1.0",
+  "description": "Drop-in 'Sign in with OpenRouter' for the browser. User auths on openrouter.ai, you get a scoped API key to run AI actions client-side. Zero deps, zero build, auditable.",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./react": {
+      "types": "./src/react.d.ts",
+      "import": "./src/react.js"
+    },
+    "./button": {
+      "import": "./src/button.js"
+    }
+  },
+  "files": ["src", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "sri": "node scripts/sri.mjs",
+    "prepublishOnly": "npm test"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
+  "keywords": ["openrouter", "oauth", "login", "sign-in", "ai", "browser", "pkce", "claude", "gpt", "react"],
+  "license": "MIT",
+  "homepage": "https://github.com/manas/loginwith-openrouter",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/manas/loginwith-openrouter.git"
+  }
+}

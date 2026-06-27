@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quill — AI toolbelt on your own credits</title>
+<style>
+  :root { color-scheme:light dark; --bg:#0b0e14; --panel:#11151f; --fg:#e6edf3; --muted:#8b949e; --acc:#7c3aed; --acc2:#06b6d4; --line:#1f2630; --ok:#3fb950; --err:#f85149; }
+  * { box-sizing:border-box; font:14px/1.55 ui-sans-serif,system-ui,sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--fg); }
+  .shell { display:grid; grid-template-columns:300px 1fr; min-height:100vh; }
+  @media (max-width:760px){ .shell{ grid-template-columns:1fr; } }
+  aside { background:var(--panel); border-right:1px solid var(--line); padding:20px; display:flex; flex-direction:column; gap:18px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:-.02em; }
+  .brand .dot { width:10px; height:10px; border-radius:50%; background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  .tagline { color:var(--muted); font-size:12px; margin-top:-12px; }
+  main { padding:28px 32px; max-width:880px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 22px; }
+  .locked { opacity:.4; pointer-events:none; filter:saturate(0); }
+  textarea, .out { width:100%; background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  textarea { resize:vertical; min-height:90px; }
+  .out { white-space:pre-wrap; word-break:break-word; min-height:120px; }
+  .out .cursor { opacity:.6; animation:blink 1s steps(2) infinite; }
+  @keyframes blink { 50%{opacity:0;} }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+  button.act { background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:9px 13px; cursor:pointer; font-weight:600; transition:.15s; }
+  button.act:hover:not(:disabled) { border-color:var(--acc); color:#fff; }
+  button.act.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  button.act.tools { background:var(--panel); border-color:var(--acc2); }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .meta { color:var(--muted); font-size:12px; font-family:ui-monospace,monospace; margin-top:8px; }
+  .signin-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; background:#161b22; color:var(--muted); }
+</style>
+<script type="module" src="../src/button.js"></script>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand"><span class="dot"></span> Quill</div>
+    <div class="tagline">AI toolbelt on <em>your</em> OpenRouter credits — chat, tools, structured output.</div>
+    <div class="signin-card">
+      <login-with-openrouter app-name="Quill" default-model="openai/gpt-oss-20b:free"></login-with-openrouter>
+    </div>
+    <div id="meter" class="meta">not signed in</div>
+  </aside>
+
+  <main>
+    <h1>Chat, tools, structured output.</h1>
+    <p class="lead">Pick a model + cap on the left. Text actions stream live. The Tools button runs an agent loop. JSON returns a parsed object.</p>
+
+    <div id="workspace" class="locked">
+      <textarea id="input">Large language models predict the next token in a sequence, trained on vast text. This makes them fluent but not always truthful.</textarea>
+
+      <div class="actions">
+        <button class="act primary" data-mode="stream" data-action="polish">✨ Polish <span class="pill">stream</span></button>
+        <button class="act" data-mode="stream" data-action="summarize">📝 Summarize</button>
+        <button class="act" data-mode="stream" data-action="shorter">↓ Shorter</button>
+        <button class="act tools" data-mode="tools">🔧 Tools: plan a trip</button>
+        <button class="act" data-mode="json">🧬 JSON: extract facts</button>
+      </div>
+
+      <div class="out" id="output">Your result streams in here.</div>
+      <div class="meta" id="lastcall"></div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { ai } from "../src/index.js";
+  const $ = (s) => document.querySelector(s);
+  const workspace = $("#workspace"), meter = $("#meter"), output = $("#output"), lastcall = $("#lastcall");
+  const btn = document.querySelector("login-with-openrouter");
+
+  const STREAMS = {
+    polish:    (t) => `Polish this for clarity and flow, keeping meaning. Output only the revised text:\n\n${t}`,
+    summarize: (t) => `Summarize in 2 concise sentences:\n\n${t}`,
+    shorter:   (t) => `Make this more concise without losing key meaning. Output only the result:\n\n${t}`,
+  };
+
+  // tools the agent can call. handler runs in the browser on the user's behalf.
+  const TRIP_TOOLS = [
+    { type:"function", function: {
+      name:"get_weather", description:"Current weather for a city",
+      parameters: { type:"object", properties:{ city:{type:"string"} }, required:["city"] },
+      handler: (a) => ({ city:a.city, temp:22, unit:"C", condition:"sunny" }),
+    }},
+    { type:"function", function: {
+      name:"convert_currency", description:"Convert USD to a target currency",
+      parameters:{ type:"object", properties:{ usd:{type:"number"}, to:{type:"string"} }, required:["usd","to"] },
+      handler: (a) => ({ usd:a.usd, [a.to]: (a.usd * 0.92).toFixed(2), currency:a.to }),
+    }},
+  ];
+
+  function refreshMeter() {
+    meter.textContent = ai.isSignedIn
+      ? `model: ${ai.model} · spent $${ai.spend.toFixed(6)}${ai.budget==null?"":` / $${ai.budget} cap`}`
+      : "not signed in";
+    btn?.refresh();
+  }
+
+  // no polling — the button fires signed-in/signed-out events
+  btn.addEventListener("signed-in", () => { workspace.classList.remove("locked"); refreshMeter(); });
+  btn.addEventListener("signed-out", () => { workspace.classList.add("locked"); refreshMeter(); });
+  if (ai.isSignedIn) workspace.classList.remove("locked");
+  refreshMeter();
+
+  function disable(on) { document.querySelectorAll("button.act").forEach(b=>b.disabled=on); }
+
+  async function runStream(action) {
+    const prompt = STREAMS[action]($("#input").value.trim());
+    output.innerHTML = `<span class="cursor">▌</span>`;
+    const t0 = Date.now();
+    try {
+      for await (const ev of ai.stream(prompt)) {
+        if (ev.type === "delta") output.innerHTML = ev.full.replace(/\n/g,"<br>") + ` <span class="cursor">▌</span>`;
+        lastcall.textContent = `streaming · ${ai.model} · ${Date.now()-t0}ms`;
+      }
+      refreshMeter();
+      lastcall.textContent = `done · ${ai.model} · ${Date.now()-t0}ms · +spend $${ai.spend.toFixed(6)}`;
+    } catch (e) { output.textContent = "error: " + e.message; }
+    finally { disable(false); }
+  }
+
+  async function runTools() {
+    output.textContent = "🤖 agent thinking…\n";
+    const t0 = Date.now();
+    try {
+      const { content, steps } = await ai.agent(
+        "Plan a 2-day trip to Paris. Check the weather and convert $500 to EUR. Then write the plan.",
+        { tools: TRIP_TOOLS, system: "Use the tools, then give a short plan." }
+      );
+      const calls = steps.flatMap(s => s.tool_calls || []).map(tc => `  ↳ tool: ${tc.function.name}(${tc.function.arguments})`).join("\n");
+      output.textContent = (calls ? `Tool calls:\n${calls}\n\n` : "") + content;
+      lastcall.textContent = `${steps.length} step(s) · ${ai.model} · ${Date.now()-t0}ms · +spend $${ai.spend.toFixed(6)}`;
+      refreshMeter();
+    } catch (e) { output.textContent = "error: " + e.message; }
+    finally { disable(false); }
+  }
+
+  async function runJson() {
+    output.textContent = "🧬 extracting structured data…\n";
+    const t0 = Date.now();
+    try {
+      const data = await ai.json(
+        `Extract facts from this:\n\n${$("#input").value.trim()}`,
+        { name:"facts", schema: { type:"object", properties:{
+          topic:{type:"string"}, claims:{type:"array",items:{type:"string"}}, confident:{type:"boolean"}
+        }, required:["topic","claims","confident"] } }
+      );
+      output.textContent = JSON.stringify(data, null, 2);
+      lastcall.textContent = `json_schema · ${ai.model} · ${Date.now()-t0}ms · +spend $${ai.spend.toFixed(6)}`;
+      refreshMeter();
+    } catch (e) { output.textContent = "error: " + e.message; }
+    finally { disable(false); }
+  }
+
+  document.querySelectorAll("button.act").forEach((b) => {
+    b.addEventListener("click", async () => {
+      if (!ai.isSignedIn) { output.textContent = "Sign in first →"; return; }
+      if (ai.remaining() <= 0) { output.textContent = `Cap reached ($${ai.spend} / $${ai.budget}).`; return; }
+      disable(true);
+      const mode = b.dataset.mode;
+      if (mode === "stream") await runStream(b.dataset.action);
+      else if (mode === "tools") await runTools();
+      else if (mode === "json") await runJson();
+    });
+  });
+</script>
+</body>
+</html>
