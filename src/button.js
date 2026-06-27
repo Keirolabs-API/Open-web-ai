@@ -5,6 +5,7 @@
 
 import { ai } from "./ai.js";
 import { listModels } from "./models.js";
+import "./picker.js";   // registers <openrouter-model-picker>, used below
 
 // Declared ABOVE customElements.define: the browser upgrades any
 // <login-with-openrouter> already in the DOM synchronously during define(),
@@ -46,7 +47,6 @@ if (!customElements.get(NAME)) customElements.define(NAME, class extends HTMLEle
     await ai.completeSignIn().catch((e) => this._err = e.message);
     if (ai.isSignedIn && !ai.model) ai.model = this._defaultModel;
     this.render();
-    if (ai.isSignedIn) this.loadModels();
     // fire signed-in if the round-trip just logged us in
     if (!wasSigned && ai.isSignedIn) this._emit("signed-in");
   }
@@ -56,23 +56,9 @@ if (!customElements.get(NAME)) customElements.define(NAME, class extends HTMLEle
   /** Re-render (e.g. after ai.ask updates spend). Safe to call anytime. */
   refresh() { this.render(); }
 
-  async loadModels() {
-    try {
-      this._models = await listModels();
-      this.render();
-      // sync <select> to the stored preference
-      const sel = this.shadowRoot.querySelector("select");
-      if (sel) sel.value = ai.model;
-    } catch (e) {
-      this._err = "couldn't load models: " + e.message;
-      this.render();
-    }
-  }
-
   // --- handlers ---
   _onSignIn = () => ai.signIn({ callbackUrl: location.href, appName: this._appName });
   _onSignOut = () => { ai.signOut(); this.render(); this._emit("signed-out"); };
-  _onModel = (e) => { ai.model = e.target.value; };
   _onBudget = (e) => {
     const v = e.target.value;
     ai.setBudget(v === "" ? null : parseFloat(v));
@@ -86,16 +72,13 @@ if (!customElements.get(NAME)) customElements.define(NAME, class extends HTMLEle
     const spend = ai.spend.toFixed(4).replace(/\.?0+$/, "");
     const budget = ai.budget;
     const budgetLabel = budget == null ? "no cap" : `$${budget}`;
-    const models = this._models || [];
 
     s.innerHTML = `
       <style>${STYLE}</style>
       <div class="wrap">
         ${signed ? `
           <div class="ok">✓ signed in</div>
-          <label>Model / provider
-            <select part="model">${this._options(models)}</select>
-          </label>
+          <openrouter-model-picker part="model"></openrouter-model-picker>
           <label>Spending cap ($)
             <input part="budget" type="number" min="0" step="0.10" placeholder="no cap"
                    value="${budget == null ? "" : budget}">
@@ -110,19 +93,6 @@ if (!customElements.get(NAME)) customElements.define(NAME, class extends HTMLEle
 
     s.querySelector(".primary")?.addEventListener("click", this._onSignIn);
     s.querySelector(".ghost")?.addEventListener("click", this._onSignOut);
-    s.querySelector("select")?.addEventListener("change", this._onModel);
     s.querySelector('input[type=number]')?.addEventListener("change", this._onBudget);
-  }
-
-  _options(models) {
-    const groups = {};
-    for (const m of models) (groups[m.provider] ||= []).push(m);
-    return Object.keys(groups).sort().map((p) =>
-      `<optgroup label="${p}">` +
-      groups[p].map((m) =>
-        `<option value="${m.id}">${m.name}${m.free ? " · free" : ` · $${m.promptPrice.toFixed(2)}/1M in`}</option>`
-      ).join("") +
-      `</optgroup>`
-    ).join("");
   }
 });

@@ -74,8 +74,9 @@ export type StreamEvent =
   | { type: "done"; content: string; reasoning: string; tool_calls: ToolCall[]; usage: CompleteResult["usage"]; model: string };
 
 export interface ModelInfo {
-  id: string; provider: string; name: string; contextLength: number;
+  id: string; provider: string; name: string; description: string; contextLength: number;
   promptPrice: number; completionPrice: number; free: boolean;
+  vision: boolean; tools: boolean; reasoning: boolean;
 }
 
 export declare function signIn(opts?: SignInOptions): Promise<void>;

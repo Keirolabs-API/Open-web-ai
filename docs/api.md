@@ -54,13 +54,19 @@ import { signIn, completeSignIn, isSignedIn, getApiKey, setApiKey,
 | `configure(patch)` | Switch provider. |
 | `provider` | Active `ProviderConfig`. |
 
-## The web component
+## The web components
 
 ```html
 <login-with-openrouter app-name="…" default-model="…"></login-with-openrouter>
+<openrouter-model-picker free-only></openrouter-model-picker>
 ```
 
+`<login-with-openrouter>` — sign-in button + model picker + spending cap.
 Events: `signed-in`, `signed-out`. Method: `refresh()`.
+
+`<openrouter-model-picker>` — searchable, grouped, badged model selector.
+Works pre-sign-in. Attributes: `value` (selected id), `free-only`. Property
+`value` reads/writes `ai.model`. Event: `model` (detail `{ id }`).
 
 ## React
 

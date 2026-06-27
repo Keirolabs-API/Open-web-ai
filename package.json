@@ -16,6 +16,9 @@
     },
     "./button": {
       "import": "./src/button.js"
+    },
+    "./picker": {
+      "import": "./src/picker.js"
     }
   },
   "files": ["src", "README.md", "LICENSE"],

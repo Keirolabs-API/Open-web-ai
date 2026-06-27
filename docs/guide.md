@@ -11,8 +11,8 @@ directly by modern bundlers and browsers (`<script type="module">`).
 
 ## 1. The drop-in button (user side)
 
-The `<login-with-openrouter>` web component renders the sign-in button, a
-model/provider picker, and a spending-cap field. One tag, framework-agnostic:
+The `<login-with-openrouter>` web component renders the sign-in button, the
+model picker, and a spending-cap field. One tag, framework-agnostic:
 
 ```html
 <script type="module" src="node_modules/loginwith-openrouter/src/button.js"></script>
@@ -20,6 +20,29 @@ model/provider picker, and a spending-cap field. One tag, framework-agnostic:
 ```
 
 Click → auth on `openrouter.ai` → pick a model → set a `$` cap. No wiring.
+
+## 1b. The model picker (standalone)
+
+`<openrouter-model-picker>` is a proper, searchable model selector — filter by
+name/provider/id, grouped by provider, with `free` / `vision` / `tools` /
+`reason` badges and pricing. It works **before sign-in** (the models endpoint is
+public), so you can drop it anywhere to let a user choose their brain:
+
+```html
+<script type="module" src="node_modules/loginwith-openrouter/src/picker.js"></script>
+<openrouter-model-picker></openrouter-model-picker>
+<openrouter-model-picker free-only></openrouter-model-picker>   <!-- free models only -->
+```
+
+Selecting a model persists it (`ai.model`) and emits a `model` event:
+
+```js
+document.querySelector("openrouter-model-picker")
+  .addEventListener("model", (e) => console.log("chose", e.detail.id));
+```
+
+The `<login-with-openrouter>` button uses this picker internally, so you get the
+rich selector for free when you use the button.
 
 ### Events
 
