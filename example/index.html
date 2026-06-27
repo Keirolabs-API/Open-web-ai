@@ -30,27 +30,40 @@
   button.act.tools { background:var(--panel); border-color:var(--acc2); }
   button.act:disabled { opacity:.5; cursor:default; }
   .meta { color:var(--muted); font-size:12px; font-family:ui-monospace,monospace; margin-top:8px; }
-  .signin-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
   .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; background:#161b22; color:var(--muted); }
+  .splash { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+  .splash-card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:32px; text-align:center; max-width:340px; }
+  .splash-card .brand-lg { display:flex; align-items:center; justify-content:center; gap:10px; font-weight:700; font-size:24px; margin-bottom:6px; letter-spacing:-.02em; }
+  .splash-card .brand-lg .dot { width:14px; height:14px; border-radius:50%; background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  .splash-card .desc { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .app-shell { display:none; }
+  .app-shell.show { display:grid; grid-template-columns:300px 1fr; min-height:100vh; }
+  @media (max-width:760px){ .app-shell.show{ grid-template-columns:1fr; } }
 </style>
 <script type="module" src="../src/button.js"></script>
 </head>
 <body>
-<div class="shell">
+
+<div id="splash" class="splash">
+  <div class="splash-card">
+    <div class="brand-lg"><span class="dot"></span> Quill</div>
+    <div class="desc">AI toolbelt on <em>your</em> OpenRouter credits — chat, tools, structured output.</div>
+    <login-with-openrouter app-name="Quill" default-model="openai/gpt-oss-20b:free"></login-with-openrouter>
+  </div>
+</div>
+
+<div id="app" class="app-shell">
   <aside>
     <div class="brand"><span class="dot"></span> Quill</div>
-    <div class="tagline">AI toolbelt on <em>your</em> OpenRouter credits — chat, tools, structured output.</div>
-    <div class="signin-card">
-      <login-with-openrouter app-name="Quill" default-model="openai/gpt-oss-20b:free"></login-with-openrouter>
-    </div>
-    <div id="meter" class="meta">not signed in</div>
+    <login-with-openrouter app-name="Quill" default-model="openai/gpt-oss-20b:free"></login-with-openrouter>
+    <div id="meter" class="meta">signed in</div>
   </aside>
 
   <main>
     <h1>Chat, tools, structured output.</h1>
     <p class="lead">Pick a model + cap on the left. Text actions stream live. The Tools button runs an agent loop. JSON returns a parsed object.</p>
 
-    <div id="workspace" class="locked">
+    <div id="workspace">
       <textarea id="input">Large language models predict the next token in a sequence, trained on vast text. This makes them fluent but not always truthful.</textarea>
 
       <div class="actions">
@@ -71,8 +84,15 @@
 <script type="module">
   import { ai } from "../src/index.js";
   const $ = (s) => document.querySelector(s);
+  const splash = $("#splash"), app = $("#app");
   const workspace = $("#workspace"), meter = $("#meter"), output = $("#output"), lastcall = $("#lastcall");
-  const btn = document.querySelector("login-with-openrouter");
+  const splashBtn = splash.querySelector("login-with-openrouter");
+  const appBtn = app.querySelector("login-with-openrouter");
+
+  function toggleView() {
+    splash.style.display = ai.isSignedIn ? "none" : "flex";
+    app.classList.toggle("show", ai.isSignedIn);
+  }
 
   const STREAMS = {
     polish:    (t) => `Polish this for clarity and flow, keeping meaning. Output only the revised text:\n\n${t}`,
@@ -95,16 +115,15 @@
   ];
 
   function refreshMeter() {
-    meter.textContent = ai.isSignedIn
-      ? `model: ${ai.model} · spent $${ai.spend.toFixed(6)}${ai.budget==null?"":` / $${ai.budget} cap`}`
-      : "not signed in";
-    btn?.refresh();
+    meter.textContent = `model: ${ai.model} · spent $${ai.spend.toFixed(6)}${ai.budget==null?"":` / $${ai.budget} cap`}`;
+    splashBtn?.refresh();
+    appBtn?.refresh();
   }
 
-  // no polling — the button fires signed-in/signed-out events
-  btn.addEventListener("signed-in", () => { workspace.classList.remove("locked"); refreshMeter(); });
-  btn.addEventListener("signed-out", () => { workspace.classList.add("locked"); refreshMeter(); });
-  if (ai.isSignedIn) workspace.classList.remove("locked");
+  splashBtn.addEventListener("signed-in", () => { toggleView(); refreshMeter(); });
+  splashBtn.addEventListener("signed-out", () => { toggleView(); refreshMeter(); });
+  appBtn.addEventListener("signed-out", () => { toggleView(); refreshMeter(); });
+  toggleView();
   refreshMeter();
 
   function disable(on) { document.querySelectorAll("button.act").forEach(b=>b.disabled=on); }
