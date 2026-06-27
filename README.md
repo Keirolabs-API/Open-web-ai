@@ -9,6 +9,16 @@ on their account, with their quota, including free models. **No backend required
 
 The platform ships data + UI. The user ships the AI. They meet in the browser.
 
+## Vision
+
+**Your AI, your bill, your choice — on every site.** The platform running the
+website never gets your API key and can't see it: the key lives only in your
+browser and is sent only to OpenRouter, never to the website's servers (there is
+no website server for AI). It's like plugging your own headphones into a site's
+stereo — the site supplies the music, your account decides how it sounds, and
+the site never holds your headphones. One AI account, every app, the user in
+control. Full version for technical and non-technical readers: [Vision](docs/vision.md).
+
 ## The 30-second pitch
 
 - **For the platform:** zero AI bill, zero AI infra, zero AI downtime of your own,
@@ -66,6 +76,7 @@ a tool-using agent, and JSON mode).
 
 | | |
 |---|---|
+| [Vision](docs/vision.md) | the dream, in plain English and in technical terms — and why we never see your key |
 | [Getting started & recipes](docs/guide.md) | install, the button, the `ai` object, streaming/tools/JSON/vision, running the example |
 | [API reference](docs/api.md) | every export, the `ai` surface, types |
 | [Providers](docs/providers.md) | OpenRouter, OpenAI-compatible, Ollama, fallbacks, SRI |
