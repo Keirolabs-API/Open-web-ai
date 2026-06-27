@@ -33,7 +33,7 @@
   "peerDependenciesMeta": {
     "react": { "optional": true }
   },
-  "keywords": ["openrouter", "oauth", "login", "sign-in", "ai", "browser", "pkce", "claude", "gpt", "react"],
+  "keywords": ["openrouter", "oauth", "login", "sign-in", "ai", "browser", "pkce", "gpt", "react"],
   "license": "MIT",
   "homepage": "https://github.com/manas/loginwith-openrouter",
   "repository": {
