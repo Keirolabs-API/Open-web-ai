@@ -5,7 +5,7 @@
 //   embed(["a","b"], {model}) → number[][]
 
 import { config } from "./provider.js";
-import { getApiKey } from "./index.js";
+import { getApiKey } from "./auth.js";
 
 const embedURL = () => config.chatURL.replace("/chat/completions", "/embeddings");
 
