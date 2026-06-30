@@ -1,0 +1,11 @@
+.git
+node_modules
+*.tgz
+npm-debug.log*
+.DS_Store
+.claude
+test
+scripts
+docs
+*.md
+!README.md

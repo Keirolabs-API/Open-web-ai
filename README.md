@@ -48,6 +48,19 @@ const summary = await ai.ask("Summarize this article: ...");
 
 That's it. No backend, no proxy, no API key setup.
 
+### Run the demo in Docker
+
+```bash
+docker build -t loginwith-openrouter .
+docker run --rm -p 8080:80 loginwith-openrouter
+# open http://localhost:8080/  → redirects to /example/
+```
+
+Or with compose: `docker compose up` → http://localhost:8080/example/
+
+Serves the live example + the package over nginx. No build, no backend — just
+static files. (For local OAuth testing, OpenRouter allows `localhost` callbacks.)
+
 ## What you can do
 
 | What | How |
